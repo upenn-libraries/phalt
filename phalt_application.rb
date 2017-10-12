@@ -28,7 +28,7 @@ class Phalt
 
 end
 
-class Application < Sinatra::Base
+class PhaltApplication < Sinatra::Base
 
   helpers do
     def url(url_fragment)

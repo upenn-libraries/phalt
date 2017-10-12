@@ -1,3 +1,3 @@
-require './application'
+require './phalt_application'
 
-run Application
+run PhaltApplication
