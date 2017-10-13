@@ -2,7 +2,6 @@
 
 
 require 'sinatra'
-require 'active_support/core_ext/string/output_safety'
 require 'open-uri'
 
 require 'pry' if development?
@@ -13,7 +12,7 @@ class Phalt
     payload = ''
     case harvest_type
       when 'oai'
-        path = "http://colenda-dev.library.upenn.int:8983/solr/blacklight-core/oai?#{args}"
+        path = "#{ENV['OAI_PMH']}?#{args}"
       else
         return ''
     end
@@ -24,6 +23,10 @@ class Phalt
       return "#{exception.message} returned by source"
     end
     return payload
+  end
+
+  def missing_env_vars?
+    return (ENV['OAI_PMH'].nil?)
   end
 
 end
@@ -39,7 +42,18 @@ class PhaltApplication < Sinatra::Base
   end
 
 
+  get '/?' do
+    content_type('text/html')
+    'Welcome to Phalt'
+  end
+
+  get '/oai-pmh/?' do
+    content_type('text/html')
+    'OAI-PMH endpoint'
+  end
+
   get '/oai-pmh/oai/?' do
+    return 'No OAI-PMH endpoint configured' if ENV['OAI_PMH'].nil?
     content_type('text/xml')
     Phalt.harvest(URI.encode_www_form(params), 'oai')
   end

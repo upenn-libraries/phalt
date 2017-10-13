@@ -1,0 +1,9 @@
+version: '2'
+
+services:
+  sinatra:
+    restart: 'unless-stopped'
+    image: 'phalt:latest'
+    env_file: '.env'
+    ports:
+      - '9292:9292'
