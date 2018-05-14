@@ -10,13 +10,22 @@ class Phalt
 
   def self.harvest(args, harvest_type)
     payload = ''
+    header_type = ''
     case harvest_type
       when 'oai'
         path = "#{ENV['OAI_PMH']}?#{args}"
       when 'iiif'
         return '' if args[:image].nil?
-        bucket, image = Rack::Utils.escape_html(args[:image]).split("&#x2F;")
-        path = "#{ENV['IIIF']}/#{bucket}%2F#{image}/info.json"
+        image_patterns = %w[default.jpg gray.jpg color.jpg bitonal.jpg]
+        arg_parts = Rack::Utils.escape_html(args[:image]).split("&#x2F;")
+        bucket, image = arg_parts.shift(2)
+        if image_patterns.member?(arg_parts.last)
+          header_type = 'image/jpeg'
+          path = "#{ENV['IIIF']}#{bucket}%2F#{image}/#{arg_parts.join('/')}"
+        else
+          header_type = 'text/json'
+          path = "#{ENV['IIIF']}#{bucket}%2F#{image}/info.json"
+        end
       else
         return ''
     end
@@ -26,7 +35,12 @@ class Phalt
     rescue => exception
       return "#{exception.message} returned by source"
     end
-    return payload
+
+    if path.end_with?('info.json')
+      payload.gsub!(ENV['IIIF'], ENV['IIIF_BASE'])
+    end
+
+    return payload, header_type
   end
 
   def missing_env_vars?
@@ -63,9 +77,10 @@ class PhaltApplication < Sinatra::Base
   end
 
   get '/iiif/?' do
-    return 'No IIIF image serving endpoint configured' if ENV['OAI_PMH'].nil?
-    content_type('text/json')
-    Phalt.harvest(params, 'iiif')
+    return 'No IIIF image serving endpoint configured' if ENV['IIIF'].nil?
+    payload, header = Phalt.harvest(params, 'iiif')
+    content_type(header)
+    payload
   end
 
 
