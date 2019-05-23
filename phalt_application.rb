@@ -3,8 +3,19 @@
 
 require 'sinatra'
 require 'open-uri'
+require 'net/http'
 
 require 'pry' if development?
+
+MEGABYTE = 1024 * 1024
+
+class File
+
+  def each_chunk(chunk_size = MEGABYTE)
+    yield read(chunk_size) until eof?
+  end
+
+end
 
 class Phalt
 
@@ -51,6 +62,18 @@ end
 
 class PhaltApplication < Sinatra::Base
 
+  def load_from_colenda(resource, &block)
+    hostname = ENV['DOWNLOAD_LINK']
+    port = ENV['DOWNLOAD_PORT']
+    http = Net::HTTP.new(hostname,port)
+    http.start do |get_call|
+      req = Net::HTTP::Get.new(resource)
+      get_call.request(req) do |origin_response|
+        origin_response.read_body(&block)
+      end
+    end
+  end
+
   helpers do
     def url(url_fragment)
       port = request.port.nil? ? '' : ":#{request.port}"
@@ -81,6 +104,38 @@ class PhaltApplication < Sinatra::Base
     payload, header = Phalt.harvest(params, 'iiif')
     content_type(header)
     payload
+  end
+
+  get '/download/?' do
+    return 'No download endpoint configured' if ENV['DOWNLOAD'].nil?
+
+    #uri = "/ark99999fk49c8625j/SHA256E-s202222738--1c93595f347a69d0ca87ecdfe2e2aa170a0bebb02777ec2553a48a0c3a080cca.warc.gz"
+    #filename = "ARCHIVEIT-9445-MONTHLY-JOB805439-0-SEED1430409-20190320210651591-00000-rq3stdlp.warc.gz"
+
+    stream do |obj|
+      load_from_ceph(uri) do |chunk|
+        obj << chunk
+      end
+    end
+
+  end
+
+  get '/files/*' do
+    headers_hash = {'.jpg' => 'image/jpg',
+                    '.tif' => 'application/octet-stream',
+                    '.gz' => 'application/octet-stream',
+                    '.xml' => 'text/xml'
+    }
+
+    headers = headers_hash[File.extname(params[:splat].first)]
+
+    content_type(headers)
+    stream do |obj|
+      load_from_colenda(params[:filename]) do |chunk|
+        obj << chunk
+      end
+    end
+
   end
 
 
