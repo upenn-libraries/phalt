@@ -26,9 +26,10 @@ class Phalt
       when 'oai'
         path = "#{ENV['OAI_PMH']}?#{args}"
       when 'iiif'
-        return '' if args[:image].nil?
+        return '' if args[:splat].nil?
+        image = args[:splat].first
         image_patterns = %w[default.jpg gray.jpg color.jpg bitonal.jpg]
-        arg_parts = Rack::Utils.escape_html(args[:image]).split("&#x2F;")
+        arg_parts = Rack::Utils.escape_html(image).split("&#x2F;")
         bucket, image = arg_parts.shift(2)
         if image_patterns.member?(arg_parts.last)
           header_type = 'image/jpeg'
@@ -99,10 +100,23 @@ class PhaltApplication < Sinatra::Base
     Phalt.harvest(URI.encode_www_form(params), 'oai')
   end
 
-  get '/iiif/?' do
+  get '/iiif/image/*' do
     return 'No IIIF image serving endpoint configured' if ENV['IIIF'].nil?
     payload, header = Phalt.harvest(params, 'iiif')
     content_type(header)
+
+    # TODO: make more restrictive or configurable
+    headers("Access-Control-Allow-Origin"  => "*")
+    payload
+  end
+
+  get '/iiif/2/*' do
+    return 'No IIIF image serving endpoint configured' if ENV['IIIF'].nil?
+    payload, header = Phalt.harvest(params, 'iiif')
+    content_type(header)
+
+    # TODO: make more restrictive or configurable
+    headers("Access-Control-Allow-Origin"  => "*")
     payload
   end
 
