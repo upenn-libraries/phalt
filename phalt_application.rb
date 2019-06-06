@@ -28,15 +28,21 @@ class Phalt
       when 'iiif'
         return '' if args[:splat].nil?
         image = args[:splat].first
-        image_patterns = %w[default.jpg gray.jpg color.jpg bitonal.jpg]
-        arg_parts = Rack::Utils.escape_html(image).split("&#x2F;")
-        bucket, image = arg_parts.shift(2)
-        if image_patterns.member?(arg_parts.last)
-          header_type = 'image/jpeg'
-          path = "#{ENV['IIIF']}#{bucket}%2F#{image}/#{arg_parts.join('/')}"
+        if image.end_with?('/manifest')
+          id = image.rpartition('/').first
+          header_type = 'application/json'
+          path = "#{ENV['MARMITE_BASE']}/#{id}/create?format=#{ENV['MARMITE_FORMAT']}"
         else
-          header_type = 'text/json'
-          path = "#{ENV['IIIF']}#{bucket}%2F#{image}/info.json"
+          image_patterns = %w[default.jpg gray.jpg color.jpg bitonal.jpg]
+          arg_parts = Rack::Utils.escape_html(image).split("&#x2F;")
+          bucket, image = arg_parts.shift(2)
+          if image_patterns.member?(arg_parts.last)
+            header_type = 'image/jpeg'
+            path = "#{ENV['IIIF']}#{bucket}%2F#{image}/#{arg_parts.join('/')}"
+          else
+            header_type = 'text/json'
+            path = "#{ENV['IIIF']}#{bucket}%2F#{image}/info.json"
+          end
         end
       else
         return ''
