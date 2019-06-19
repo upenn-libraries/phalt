@@ -69,6 +69,10 @@ end
 
 class PhaltApplication < Sinatra::Base
 
+  configure do
+    set :protection, :except => [:json_csrf]
+  end
+
   def load_from_colenda(resource, &block)
     hostname = ENV['DOWNLOAD_LINK']
     port = ENV['DOWNLOAD_PORT']
