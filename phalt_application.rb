@@ -31,7 +31,7 @@ class Phalt
         if image.end_with?('/manifest')
           id = image.rpartition('/').first
           header_type = 'application/json'
-          path = "#{ENV['MARMITE_BASE']}/#{id}/create?format=#{ENV['MARMITE_FORMAT']}"
+          path = "#{ENV['MARMITE_BASE']}/#{id}/show?format=#{ENV['MARMITE_FORMAT']}"
         else
           image_patterns = %w[default.jpg gray.jpg color.jpg bitonal.jpg]
           arg_parts = Rack::Utils.escape_html(image).split("&#x2F;")
