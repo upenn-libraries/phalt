@@ -6,10 +6,9 @@ ENV RACK_ENV production
 
 EXPOSE 9292
 
-RUN printf "deb http://archive.debian.org/debian/ jessie main\ndeb-src http://archive.debian.org/debian/ jessie main\ndeb http://security.debian.org jessie/updates main\ndeb-src http://security.debian.org jessie/updates main" > /etc/apt/sources.list
-
-RUN apt-get update && apt-get install -qq -y --no-install-recommends \
-         build-essential
+RUN apt-key adv --keyserver keyserver.ubuntu.com --recv-keys AA8E81B4331F7F50 && \
+    apt-get update && apt-get install -qq -y --no-install-recommends \
+        build-essential
 
 RUN mkdir -p /usr/src/app
 
