@@ -1,7 +1,5 @@
 FROM ruby:2.4.0
 
-MAINTAINER Kate Lynch <katherly@upenn.edu>
-
 ENV RACK_ENV production
 
 EXPOSE 9292
