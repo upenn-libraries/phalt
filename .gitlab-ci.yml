@@ -1,0 +1,96 @@
+include:
+  - project: "devops/gitlab/ci-templates/docker"
+    ref: "master"
+    file: ".build_docker_image.yml"
+  - project: "devops/gitlab/ci-templates/docker"
+    ref: "master"
+    file: ".push_docker_image.yml"
+  - project: "devops/gitlab/ci-templates/docker"
+    ref: "master"
+    file: ".remove_docker_image.yml"
+  - project: "devops/gitlab/ci-templates/ruby"
+    ref: "master"
+    file: ".rspec.yml"
+  - project: "devops/gitlab/ci-templates/ruby"
+    ref: "master"
+    file: ".rubocop.yml"
+  - project: "devops/gitlab/ci-templates/sast"
+    ref: "master"
+    file: ".shiftleft_container_scanning.yml"
+  - project: "devops/gitlab/ci-templates/sast"
+    ref: "master"
+    file: ".trivy_container_scanning.yml"
+  - template: "Workflows/MergeRequest-Pipelines.gitlab-ci.yml"
+
+stages:
+  - .pre
+  - test
+  - sast
+  - push
+  - .post
+
+build_image:
+  stage: .pre
+  extends:
+    - .build_docker_image
+  tags:
+    - build
+
+# **Work in Progress**
+# rspec_test:
+#   stage: test
+#   services:
+#     - mysql:5.7.31
+#   extends:
+#     - .rspec
+#   variables:
+#     RSPEC_TEST_DOCKER_ENV_VARS: " --env-file .env"
+#     RSPEC_TEST_PRE_SCRIPT: ""
+#   before_script:
+#     - cp ${CI_PROJECT_DIR}/.env.example ${CI_PROJECT_DIR}/.env
+#   tags:
+#     - build
+
+# **Work in Progress**
+# rubocop:
+#   stage: test
+#   extends:
+#     - .rubocop
+#   variables:
+#     RUBOCOP_DOCKER_ENV_VARS: "--env-file .env"
+#   before_script:
+#     - cp ${CI_PROJECT_DIR}/.env.example ${CI_PROJECT_DIR}/.env
+#   tags:
+#     - build
+
+shiftleft_container_scanning:
+  stage: sast
+  extends:
+    - .shiftleft_container_scanning
+  tags:
+    - build
+  allow_failure: true
+
+trivy_container_scanning:
+  stage: sast
+  extends:
+    - .trivy_container_scanning
+  tags:
+    - build
+  allow_failure: true
+
+push_image_to_registry:
+  stage: push
+  extends:
+    - .push_docker_image
+  tags:
+    - build
+
+remove_image:
+  stage: .post
+  extends:
+    - .remove_docker_image
+  rules:
+    - when: always
+  tags:
+    - build
