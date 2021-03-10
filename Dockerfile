@@ -8,8 +8,6 @@ RUN apt-key adv --keyserver keyserver.ubuntu.com --recv-keys AA8E81B4331F7F50 &&
     apt-get update && apt-get install -qq -y --no-install-recommends \
         build-essential
 
-RUN mkdir -p /usr/src/app
-
 WORKDIR /usr/src/app
 
 COPY Gemfile Gemfile.lock /usr/src/app/
