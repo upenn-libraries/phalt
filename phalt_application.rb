@@ -85,6 +85,18 @@ class PhaltApplication < Sinatra::Base
     end
   end
 
+  def load_from_ceph(url, &block)
+    # TODO: pull ceph url, port from ENV - dotenv gem?
+    http = Net::HTTP.new('crgw-dev.library.upenn.edu/', 443)
+    http.use_ssl = true
+    http.start do |get_call|
+      req = Net::HTTP::Get.new(url)
+      get_call.request(req) do |origin_response|
+        origin_response.read_body(&block)
+      end
+    end
+  end
+
   helpers do
     def url(url_fragment)
       port = request.port.nil? ? '' : ":#{request.port}"
@@ -130,15 +142,35 @@ class PhaltApplication < Sinatra::Base
     payload
   end
 
-  get '/download/?' do
-    return 'No download endpoint configured' if ENV['DOWNLOAD'].nil?
+  # get '/download/?' do
+  #   return 'No download endpoint configured' if ENV['DOWNLOAD'].nil?
+  #
+  #   #uri = "/ark99999fk49c8625j/SHA256E-s202222738--1c93595f347a69d0ca87ecdfe2e2aa170a0bebb02777ec2553a48a0c3a080cca.warc.gz"
+  #   #filename = "ARCHIVEIT-9445-MONTHLY-JOB805439-0-SEED1430409-20190320210651591-00000-rq3stdlp.warc.gz"
+  #
+  #   stream do |obj|
+  #     load_from_ceph(uri) do |chunk|
+  #       obj << chunk
+  #     end
+  #   end
+  #
+  # end
 
-    #uri = "/ark99999fk49c8625j/SHA256E-s202222738--1c93595f347a69d0ca87ecdfe2e2aa170a0bebb02777ec2553a48a0c3a080cca.warc.gz"
-    #filename = "ARCHIVEIT-9445-MONTHLY-JOB805439-0-SEED1430409-20190320210651591-00000-rq3stdlp.warc.gz"
+  get '/download/:bucket/:file' do |bucket, file|
+    filename = params[:filename] || file
+    disposition = params[:disposition] || 'attachment'
 
-    stream do |obj|
-      load_from_ceph(uri) do |chunk|
-        obj << chunk
+    ceph_url = "#{bucket}/#{file}"
+
+    # TODO: return [404, 'File does not exist'] unless file_exists?(bucket, file)
+
+    # TODO: content_type
+
+    attachment filename, disposition
+
+    stream do |object|
+      load_from_ceph(ceph_url) do |chunk|
+        object << chunk
       end
     end
 
