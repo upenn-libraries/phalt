@@ -5,72 +5,22 @@ require 'sinatra'
 require 'open-uri'
 require 'net/http'
 
-require 'pry' if development?
+require './lib/phalt'
+
+# require 'pry' if development?
 
 MEGABYTE = 1024 * 1024
 
 class File
-
   def each_chunk(chunk_size = MEGABYTE)
     yield read(chunk_size) until eof?
   end
-
-end
-
-class Phalt
-
-  def self.harvest(args, harvest_type)
-    payload = ''
-    header_type = ''
-    case harvest_type
-      when 'oai'
-        path = "#{ENV['OAI_PMH']}?#{args}"
-      when 'iiif'
-        return '' if args[:splat].nil?
-        image = args[:splat].first
-        if image.end_with?('/manifest')
-          id = image.rpartition('/').first
-          header_type = 'application/json'
-          path = "#{ENV['MARMITE_BASE']}/#{id}/show?format=#{ENV['MARMITE_FORMAT']}"
-        else
-          image_patterns = %w[default.jpg gray.jpg color.jpg bitonal.jpg]
-          arg_parts = Rack::Utils.escape_html(image).split("&#x2F;")
-          bucket, image = arg_parts.shift(2)
-          if image_patterns.member?(arg_parts.last)
-            header_type = 'image/jpeg'
-            path = "#{ENV['IIIF']}#{bucket}%2F#{image}/#{arg_parts.join('/')}"
-          else
-            header_type = 'text/json'
-            path = "#{ENV['IIIF']}#{bucket}%2F#{image}/info.json"
-          end
-        end
-      else
-        return ''
-    end
-
-    begin
-      open(path) { |io| payload = io.read }
-    rescue => exception
-      return "#{exception.message} returned by source"
-    end
-
-    if path.end_with?('info.json')
-      payload.gsub!(ENV['IIIF'], ENV['IIIF_BASE'])
-    end
-
-    return payload, header_type
-  end
-
-  def missing_env_vars?
-    return (ENV['OAI_PMH'].nil?)
-  end
-
 end
 
 class PhaltApplication < Sinatra::Base
 
   configure do
-    set :protection, :except => [:json_csrf]
+    set :protection, except: [:json_csrf]
   end
 
   def load_from_colenda(resource, &block)
@@ -86,8 +36,7 @@ class PhaltApplication < Sinatra::Base
   end
 
   def load_from_ceph(url, &block)
-    # TODO: pull ceph url, port from ENV - dotenv gem?
-    http = Net::HTTP.new('crgw-dev.library.upenn.edu/', 443)
+    http = Net::HTTP.new(ENV['STORAGE_HOST'], 443)
     http.use_ssl = true
     http.start do |get_call|
       req = Net::HTTP::Get.new(url)
@@ -100,8 +49,7 @@ class PhaltApplication < Sinatra::Base
   helpers do
     def url(url_fragment)
       port = request.port.nil? ? '' : ":#{request.port}"
-      url = "#{request.scheme}://#{request.host}#{port}/#{url_fragment}"
-      return url
+      "#{request.scheme}://#{request.host}#{port}/#{url_fragment}"
     end
   end
 
@@ -128,7 +76,7 @@ class PhaltApplication < Sinatra::Base
     content_type(header)
 
     # TODO: make more restrictive or configurable
-    headers("Access-Control-Allow-Origin"  => "*")
+    headers('Access-Control-Allow-Origin'  => '*')
     payload
   end
 
@@ -138,7 +86,7 @@ class PhaltApplication < Sinatra::Base
     content_type(header)
 
     # TODO: make more restrictive or configurable
-    headers("Access-Control-Allow-Origin"  => "*")
+    headers('Access-Control-Allow-Origin'  => '*')
     payload
   end
 
@@ -162,10 +110,18 @@ class PhaltApplication < Sinatra::Base
 
     ceph_url = "#{bucket}/#{file}"
 
-    # TODO: return [404, 'File does not exist'] unless file_exists?(bucket, file)
+    # do HEAD request to get headers and confirm file exists
+    http = Net::HTTP.new(ENV['STORAGE_HOST'], 443)
+    http.use_ssl = true
+    begin
+      ceph_headers = http.start do |h|
+        h.head(ceph_url).to_hash
+      end
+    rescue StandardError => _e # TODO: more specific exception
+      halt 404
+    end
 
-    # TODO: content_type
-
+    headers(ceph_headers.select { |k,_| %w[content-length last-modified etag].include? k })
     attachment filename, disposition
 
     stream do |object|
