@@ -119,7 +119,7 @@ class PhaltApplication < Sinatra::Base
     filename = params[:filename] || file
     disposition = params[:disposition] || 'attachment'
 
-    ceph_file_uri = URI("https://#{ENV['STORAGE_HOST']}/#{ceph_url}")
+    ceph_file_uri = URI("https://#{ENV['STORAGE_HOST']}/#{bucket}/#{file}")
 
     # do HEAD request to get headers and confirm file exists
     http = Net::HTTP.new(ENV['STORAGE_HOST'], 443)
