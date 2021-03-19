@@ -43,12 +43,15 @@ class PhaltApplication < Sinatra::Base
     end
   end
 
-  def load_from_ceph(url, &block)
-    http = Net::HTTP.new(ENV['STORAGE_HOST'], 443)
-    http.use_ssl = true
-    http.start do |get_call|
-      req = Net::HTTP::Get.new(url)
-      get_call.request(req) do |origin_response|
+  # @param [URI] uri
+  def load_from_ceph(uri, &block)
+    conn = Net::HTTP.new(ENV['STORAGE_HOST'], 443)
+    conn.use_ssl = true
+    conn.start do |http|
+      req = Net::HTTP::Get.new(uri)
+      http.request(req) do |origin_response|
+        raise StandardError, "Failed to get file from Ceph @ #{req.uri}" unless origin_response.code == '200'
+
         origin_response.read_body(&block)
       end
     end
@@ -116,18 +119,18 @@ class PhaltApplication < Sinatra::Base
     filename = params[:filename] || file
     disposition = params[:disposition] || 'attachment'
 
-    ceph_url = "#{bucket}/#{file}"
+    ceph_file_uri = URI("https://#{ENV['STORAGE_HOST']}/#{ceph_url}")
 
     # do HEAD request to get headers and confirm file exists
     http = Net::HTTP.new(ENV['STORAGE_HOST'], 443)
     http.use_ssl = true
     begin
       ceph_headers = http.start do |h|
-        h.head(ceph_url).to_hash
+        h.head(ceph_file_uri).to_hash
       end
       headers(ceph_headers.select { |k, _| %w[content-length last-modified etag].include? k })
-    rescue StandardError => _e # TODO: more specific exception
-      halt 404
+    rescue StandardError => e # TODO: more specific exception -
+      halt 400, e.message
     end
 
     file_extension = File.extname file
@@ -135,17 +138,18 @@ class PhaltApplication < Sinatra::Base
 
     # fail if attempting to change extension with filename param
     if file_extension != destination_filename_extension
-      halt 500 # report error message?
+      halt 500, 'Original file and provided filename extensions do not match!'
     elsif !CONTENT_TYPE_MAPPING.key?(file_extension)
-      halt 500 # report error?
+      halt 500, 'File type is not configured for downloading.'
     else
-      content_type CONTENT_TYPE_MAPPING[file_extension]
+      # content_type CONTENT_TYPE_MAPPING[file_extension]
+      content_type 'application/octet-stream'
     end
 
     attachment filename, disposition
 
     stream do |object|
-      load_from_ceph(ceph_url) do |chunk|
+      load_from_ceph(ceph_file_uri) do |chunk|
         object << chunk
       end
     end
