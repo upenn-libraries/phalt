@@ -19,6 +19,14 @@ end
 
 class PhaltApplication < Sinatra::Base
 
+  CONTENT_TYPE_MAPPING = {
+    '.jpg' => 'image/jpg',
+    '.jpeg' => 'image/jpeg',
+    '.tif' => 'application/octet-stream',
+    '.gz' => 'application/octet-stream',
+    '.xml' => 'text/xml'
+  }.freeze
+  
   configure do
     set :protection, except: [:json_csrf]
   end
@@ -117,11 +125,23 @@ class PhaltApplication < Sinatra::Base
       ceph_headers = http.start do |h|
         h.head(ceph_url).to_hash
       end
+      headers(ceph_headers.select { |k, _| %w[content-length last-modified etag].include? k })
     rescue StandardError => _e # TODO: more specific exception
       halt 404
     end
 
-    headers(ceph_headers.select { |k,_| %w[content-length last-modified etag].include? k })
+    file_extension = File.extname file
+    destination_filename_extension = File.extname filename
+
+    # fail if attempting to change extension with filename param
+    if file_extension != destination_filename_extension
+      halt 500 # report error message?
+    elsif !CONTENT_TYPE_MAPPING.key?(file_extension)
+      halt 500 # report error?
+    else
+      content_type CONTENT_TYPE_MAPPING[file_extension]
+    end
+
     attachment filename, disposition
 
     stream do |object|
@@ -129,7 +149,6 @@ class PhaltApplication < Sinatra::Base
         object << chunk
       end
     end
-
   end
 
   get '/files/*' do
