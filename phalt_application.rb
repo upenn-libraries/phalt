@@ -98,7 +98,7 @@ class PhaltApplication < Sinatra::Base
     payload, header = Phalt.harvest(params, 'iiif')
     content_type(header)
 
-    # TODO: make more restrictifirefove or configurable
+    # TODO: make more restrictive or configurable
     headers('Access-Control-Allow-Origin'  => '*')
     payload
   end
