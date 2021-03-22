@@ -43,6 +43,20 @@ class PhaltApplication < Sinatra::Base
     end
   end
 
+  # Compute a final filename for downloading
+  # Prohibits altering file extension with filename param
+  # @param [String] file
+  # @param [String, nil] desired_filename
+  def filename_from(file, desired_filename = nil)
+    return file unless desired_filename
+
+    # don't allow the file extension to me modified for security reasons and to avoid issues with download file
+    halt 500, 'Don\'t include an extension in the filename param' unless File.extname(desired_filename).empty?
+
+    desired_filename + File.extname(file)
+  end
+
+  # Pull file from Ceph
   # @param [URI] uri
   def load_from_ceph(uri, &block)
     conn = Net::HTTP.new(ENV['STORAGE_HOST'], 443)
@@ -50,8 +64,6 @@ class PhaltApplication < Sinatra::Base
     conn.start do |http|
       req = Net::HTTP::Get.new(uri)
       http.request(req) do |origin_response|
-        raise StandardError, "Failed to get file from Ceph @ #{req.uri}" unless origin_response.code == '200'
-
         origin_response.read_body(&block)
       end
     end
@@ -86,7 +98,7 @@ class PhaltApplication < Sinatra::Base
     payload, header = Phalt.harvest(params, 'iiif')
     content_type(header)
 
-    # TODO: make more restrictive or configurable
+    # TODO: make more restrictifirefove or configurable
     headers('Access-Control-Allow-Origin'  => '*')
     payload
   end
@@ -115,37 +127,36 @@ class PhaltApplication < Sinatra::Base
   #
   # end
 
+  # Stream a download from Ceph, setting filename to something more user-friendly with
+  # param :filename : should be the basename (no extname) for the file as it will be downloaded
+  # param :disposition : for something other than 'attachment'
+  # Returns `404` if file not found in Ceph
+  # Returns `500` if PHALT error (unsupported file type, misconfiguration)
+  # Returns `400` for other Ceph error
   get '/download/:bucket/:file' do |bucket, file|
-    filename = params[:filename] || file
+    halt 500, 'No STORAGE_HOST configured' if ENV['STORAGE_HOST'].nil?
+
     disposition = params[:disposition] || 'attachment'
+    filename = filename_from file, params[:filename]
 
     ceph_file_uri = URI("https://#{ENV['STORAGE_HOST']}/#{bucket}/#{file}")
 
     # do HEAD request to get headers and confirm file exists
     http = Net::HTTP.new(ENV['STORAGE_HOST'], 443)
     http.use_ssl = true
-    begin
-      ceph_headers = http.start do |h|
-        h.head(ceph_file_uri).to_hash
-      end
-      headers(ceph_headers.select { |k, _| %w[content-length last-modified etag].include? k })
-    rescue StandardError => e # TODO: more specific exception -
-      halt 400, e.message
-    end
+    response = http.start { |h| h.head(ceph_file_uri) }
+    ceph_headers = case response.code
+                   when '200'
+                     response.to_hash
+                   when '404'
+                     halt 404, 'File not found'
+                   else
+                     halt 400, 'Problem retrieving from Ceph'
+                   end
+    headers(ceph_headers.select { |k, _| %w[content-length last-modified etag].include? k })
 
-    file_extension = File.extname file
-    destination_filename_extension = File.extname filename
-
-    # fail if attempting to change extension with filename param
-    if file_extension != destination_filename_extension
-      halt 500, 'Original file and provided filename extensions do not match!'
-    elsif !CONTENT_TYPE_MAPPING.key?(file_extension)
-      halt 500, 'File type is not configured for downloading.'
-    else
-      # content_type CONTENT_TYPE_MAPPING[file_extension]
-      content_type 'application/octet-stream'
-    end
-
+    halt 500, 'File type is not configured for downloading' unless CONTENT_TYPE_MAPPING.key?(File.extname(filename))
+    content_type CONTENT_TYPE_MAPPING[File.extname(filename)]
     attachment filename, disposition
 
     stream do |object|
