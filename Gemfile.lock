@@ -1,6 +1,9 @@
 GEM
   remote: https://rubygems.org/
   specs:
+    mime-types (3.3.1)
+      mime-types-data (~> 3.2015)
+    mime-types-data (3.2021.0225)
     mustermann (1.0.1)
     rack (2.0.3)
     rack-protection (2.0.0)
@@ -17,6 +20,7 @@ PLATFORMS
   ruby
 
 DEPENDENCIES
+  mime-types
   rake
   sinatra
 
@@ -24,4 +28,4 @@ RUBY VERSION
    ruby 2.4.0p0
 
 BUNDLED WITH
-   1.14.6
+   2.2.14

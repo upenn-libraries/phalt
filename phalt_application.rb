@@ -1,20 +1,12 @@
-# frozen_string_literal: true
 # #!/usr/bin/env ruby
 
 require 'sinatra'
 require 'open-uri'
 require 'net/http'
+require 'mime/types'
 require './lib/phalt'
 
 class PhaltApplication < Sinatra::Base
-
-  CONTENT_TYPE_MAPPING = {
-    '.jpg' => 'image/jpg',
-    '.jpeg' => 'image/jpeg',
-    '.tif' => 'application/octet-stream',
-    '.gz' => 'application/octet-stream',
-    '.xml' => 'text/xml'
-  }.freeze
 
   configure do
     set :protection, except: [:json_csrf]
@@ -69,14 +61,14 @@ class PhaltApplication < Sinatra::Base
   end
 
   get '/oai-pmh/oai/?' do
-    return 'No OAI-PMH endpoint configured' if ENV['OAI_PMH'].nil?
+    halt(500, 'No OAI-PMH endpoint configured') if ENV['OAI_PMH'].nil?
 
     content_type('text/xml')
     Phalt.harvest(URI.encode_www_form(params), 'oai')
   end
 
   get '/iiif/image/*' do
-    return 'No IIIF image serving endpoint configured' if ENV['IIIF'].nil?
+    halt(500, 'No IIIF image serving endpoint configured') if ENV['IIIF'].nil?
 
     payload, header = Phalt.harvest(params, 'iiif')
     content_type(header)
@@ -87,7 +79,7 @@ class PhaltApplication < Sinatra::Base
   end
 
   get '/iiif/2/*' do
-    return 'No IIIF image serving endpoint configured' if ENV['IIIF'].nil?
+    halt(500, 'No IIIF image serving endpoint configured') if ENV['IIIF'].nil?
 
     payload, header = Phalt.harvest(params, 'iiif')
     content_type(header)
@@ -125,8 +117,9 @@ class PhaltApplication < Sinatra::Base
                    end
     headers(ceph_headers.select { |k, _| %w[content-length last-modified etag].include? k })
 
-    halt 500, 'File type is not configured for downloading' unless CONTENT_TYPE_MAPPING.key?(File.extname(filename))
-    content_type CONTENT_TYPE_MAPPING[File.extname(filename)]
+    # get MIME type for original file, if possible
+    mime_type = MIME::Types.type_for(file)&.first
+    content_type(mime_type) if mime_type
     attachment filename, disposition
 
     stream do |object|
