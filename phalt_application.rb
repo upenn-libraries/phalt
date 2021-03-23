@@ -1,21 +1,10 @@
-#!/usr/bin/env ruby
-
+# frozen_string_literal: true
+# #!/usr/bin/env ruby
 
 require 'sinatra'
 require 'open-uri'
 require 'net/http'
-
 require './lib/phalt'
-
-# require 'pry' if development?
-
-MEGABYTE = 1024 * 1024
-
-class File
-  def each_chunk(chunk_size = MEGABYTE)
-    yield read(chunk_size) until eof?
-  end
-end
 
 class PhaltApplication < Sinatra::Base
 
@@ -26,7 +15,7 @@ class PhaltApplication < Sinatra::Base
     '.gz' => 'application/octet-stream',
     '.xml' => 'text/xml'
   }.freeze
-  
+
   configure do
     set :protection, except: [:json_csrf]
   end
@@ -69,14 +58,6 @@ class PhaltApplication < Sinatra::Base
     end
   end
 
-  helpers do
-    def url(url_fragment)
-      port = request.port.nil? ? '' : ":#{request.port}"
-      "#{request.scheme}://#{request.host}#{port}/#{url_fragment}"
-    end
-  end
-
-
   get '/?' do
     content_type('text/html')
     'Welcome to Phalt'
@@ -89,43 +70,32 @@ class PhaltApplication < Sinatra::Base
 
   get '/oai-pmh/oai/?' do
     return 'No OAI-PMH endpoint configured' if ENV['OAI_PMH'].nil?
+
     content_type('text/xml')
     Phalt.harvest(URI.encode_www_form(params), 'oai')
   end
 
   get '/iiif/image/*' do
     return 'No IIIF image serving endpoint configured' if ENV['IIIF'].nil?
+
     payload, header = Phalt.harvest(params, 'iiif')
     content_type(header)
 
     # TODO: make more restrictive or configurable
-    headers('Access-Control-Allow-Origin'  => '*')
+    headers('Access-Control-Allow-Origin' => '*')
     payload
   end
 
   get '/iiif/2/*' do
     return 'No IIIF image serving endpoint configured' if ENV['IIIF'].nil?
+
     payload, header = Phalt.harvest(params, 'iiif')
     content_type(header)
 
     # TODO: make more restrictive or configurable
-    headers('Access-Control-Allow-Origin'  => '*')
+    headers('Access-Control-Allow-Origin' => '*')
     payload
   end
-
-  # get '/download/?' do
-  #   return 'No download endpoint configured' if ENV['DOWNLOAD'].nil?
-  #
-  #   #uri = "/ark99999fk49c8625j/SHA256E-s202222738--1c93595f347a69d0ca87ecdfe2e2aa170a0bebb02777ec2553a48a0c3a080cca.warc.gz"
-  #   #filename = "ARCHIVEIT-9445-MONTHLY-JOB805439-0-SEED1430409-20190320210651591-00000-rq3stdlp.warc.gz"
-  #
-  #   stream do |obj|
-  #     load_from_ceph(uri) do |chunk|
-  #       obj << chunk
-  #     end
-  #   end
-  #
-  # end
 
   # Stream a download from Ceph, setting filename to something more user-friendly with
   # param :filename : should be the basename (no extname) for the file as it will be downloaded
@@ -183,6 +153,5 @@ class PhaltApplication < Sinatra::Base
     end
 
   end
-
 
 end
