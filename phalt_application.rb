@@ -115,7 +115,7 @@ class PhaltApplication < Sinatra::Base
                    else
                      halt 400, 'Problem retrieving from Ceph'
                    end
-    headers(ceph_headers.select { |k, _| %w[content-length last-modified etag].include? k })
+    headers(ceph_headers.select { |k, _| %w[last-modified etag].include? k })
 
     # get MIME type for original file, if possible
     mime_type = MIME::Types.type_for(file)&.first
