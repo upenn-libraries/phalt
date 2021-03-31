@@ -1,28 +1,54 @@
 GEM
   remote: https://rubygems.org/
   specs:
-    mime-types (3.3.1)
-      mime-types-data (~> 3.2015)
-    mime-types-data (3.2021.0225)
+    addressable (2.7.0)
+      public_suffix (>= 2.0.2, < 5.0)
+    crack (0.4.5)
+      rexml
+    diff-lcs (1.4.4)
+    hashdiff (1.0.1)
     mustermann (1.0.1)
+    public_suffix (4.0.6)
     rack (2.0.3)
     rack-protection (2.0.0)
       rack
+    rack-test (1.1.0)
+      rack (>= 1.0, < 3)
     rake (12.1.0)
+    rexml (3.2.4)
+    rspec (3.10.0)
+      rspec-core (~> 3.10.0)
+      rspec-expectations (~> 3.10.0)
+      rspec-mocks (~> 3.10.0)
+    rspec-core (3.10.1)
+      rspec-support (~> 3.10.0)
+    rspec-expectations (3.10.1)
+      diff-lcs (>= 1.2.0, < 2.0)
+      rspec-support (~> 3.10.0)
+    rspec-mocks (3.10.2)
+      diff-lcs (>= 1.2.0, < 2.0)
+      rspec-support (~> 3.10.0)
+    rspec-support (3.10.2)
     sinatra (2.0.0)
       mustermann (~> 1.0)
       rack (~> 2.0)
       rack-protection (= 2.0.0)
       tilt (~> 2.0)
     tilt (2.0.8)
+    webmock (3.12.2)
+      addressable (>= 2.3.6)
+      crack (>= 0.3.2)
+      hashdiff (>= 0.4.0, < 2.0.0)
 
 PLATFORMS
   ruby
 
 DEPENDENCIES
-  mime-types
+  rack-test
   rake
+  rspec
   sinatra
+  webmock
 
 RUBY VERSION
    ruby 2.4.0p0
