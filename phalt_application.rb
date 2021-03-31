@@ -3,7 +3,6 @@
 require 'sinatra'
 require 'open-uri'
 require 'net/http'
-require 'mime/types'
 require './lib/phalt'
 
 class PhaltApplication < Sinatra::Base
@@ -117,9 +116,6 @@ class PhaltApplication < Sinatra::Base
                    end
     headers(ceph_headers.select { |k, _| %w[last-modified etag].include? k })
 
-    # get MIME type for original file, if possible
-    mime_type = MIME::Types.type_for(file)&.first
-    content_type(mime_type) if mime_type
     attachment filename, disposition
 
     stream do |object|
