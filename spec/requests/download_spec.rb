@@ -17,7 +17,6 @@ RSpec.describe 'Download Requests', type: :request do
     let(:image) { File.join('spec', 'fixtures', 'puppy.jpg') }
     let(:headers) do
       {
-        'Content-Length' => '1233244',
         'Last-Modified' => 'Sun, 15 Apr 2018 10:50:19 GMT',
         'ETag' => '989817aabd5f2da6a1c77425a348a080',
       }
