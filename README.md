@@ -5,16 +5,18 @@ This application serves as a proxy to download files from a remote storage locat
 ## API (Incomplete description)
 
 ### Download 
-Downloads files from remote storage location, in our case CEPH via an S3 protocol.
+Downloads files from remote storage location, in our case CEPH via an S3 protocol. Changes filename and disposition if values are passed in as query parameters.
 
 `GET /download/:bucket/:file`
 
 #### Parameters
 
-| Name        | In   | Description | Default |
-| ----------- | --   | ----------- | ------- |
-| filename    | path | filename (without extension) to override given filename | given filename |
-| disposition | path | whether the file should be downloaded or inline | attachment |
+| Name        | In    | Description | Default |
+| ----------- | ----- | ----------- | ------- |
+| bucket | path | bucket name ||
+| file | path | filename ||
+| filename    | query | filename (without extension) to override given filename | `file` in path parameter |
+| disposition | query | whether the file should be downloaded or inline | attachment |
 
 
 
