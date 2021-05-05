@@ -1,9 +1,8 @@
-FROM ruby:2.4.0
+FROM ruby:2.6.6
 
 ENV RACK_ENV production
 
-RUN apt-key adv --keyserver keyserver.ubuntu.com --recv-keys AA8E81B4331F7F50 && \
-    apt-get update && apt-get install -qq -y --no-install-recommends \
+RUN apt-get update && apt-get install -qq -y --no-install-recommends \
         build-essential
 
 WORKDIR /usr/src/app
