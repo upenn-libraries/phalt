@@ -13,7 +13,6 @@ RSpec.describe 'Download Requests', type: :request do
 
   context 'when file is available' do
     let(:bucket) { 'cool_bucket' }
-    # let(:file) { 'best_image.jpeg' }
     let(:image) { File.join('spec', 'fixtures', 'puppy.jpg') }
     let(:headers) do
       {
@@ -73,7 +72,7 @@ RSpec.describe 'Download Requests', type: :request do
         before { get "/download/#{bucket}/#{file}?disposition=inline&filename=best_image.jpeg" }
 
         it { expect(last_response.status).to be 500 }
-        it { expect(last_response.body).to eq 'Don\'t include an extension in the filename param' }
+        it { expect(last_response.body).to eql 'Don\'t include an extension in the filename param' }
       end
     end
 
