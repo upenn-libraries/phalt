@@ -7,6 +7,8 @@ require './lib/phalt'
 
 class PhaltApplication < Sinatra::Base
 
+  EXTENSION_REGEX = /(?<ext>(?:\.[^.]{1,4})+)$/.freeze
+
   configure do
     set :protection, except: [:json_csrf]
   end
@@ -31,9 +33,10 @@ class PhaltApplication < Sinatra::Base
     return file unless desired_filename
 
     # don't allow the file extension to me modified for security reasons and to avoid issues with download file
-    halt 500, 'Don\'t include an extension in the filename param' unless File.extname(desired_filename).empty?
+    halt 500, 'Don\'t include an extension in the filename param' if desired_filename&.match? EXTENSION_REGEX
 
-    desired_filename + File.extname(file)
+    extension = file.match EXTENSION_REGEX
+    desired_filename + extension[:ext]
   end
 
   # Pull file from Ceph
