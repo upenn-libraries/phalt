@@ -76,7 +76,7 @@ RSpec.describe 'Download Requests', type: :request do
       end
     end
 
-    context 'with a filename param with multiple extensions' do
+    context 'with a file param containing multiple extensions' do
       let(:file) { 'best_archive123456.warc.gz' }
 
       before { get "/download/#{bucket}/#{file}?disposition=inline&filename=best_archive" }
@@ -85,7 +85,7 @@ RSpec.describe 'Download Requests', type: :request do
       it { expect(last_response.headers['Content-Disposition']).to eql 'inline; filename="best_archive.warc.gz"' }
     end
 
-    context 'with a filename param containing a period' do
+    context 'with file and filename params that contain a period that does not indicate an extension' do
       let(:file) { 'best.image123456.jpeg' }
 
       before { get "/download/#{bucket}/#{file}?disposition=inline&filename=best.image" }
