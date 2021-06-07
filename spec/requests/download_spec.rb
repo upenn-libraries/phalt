@@ -37,8 +37,8 @@ RSpec.describe 'Download Requests', type: :request do
       it { expect(last_response.headers['Content-Disposition']).to eql 'attachment; filename="best_image.jpeg"' }
       it { expect(last_response.headers['Content-Type']).to eql 'image/jpeg' }
       it { expect(last_response.headers['Content-Length']).to eql '17037' }
-      it { expect(last_response.headers['Last-Modified']).to eql 'Sun, 15 Apr 2018 10:50:19 GMT'}
-      it { expect(last_response.headers['ETag']).to eql '989817aabd5f2da6a1c77425a348a080' }
+      it { expect(last_response.headers['Last-Modified']).to eql ['Sun, 15 Apr 2018 10:50:19 GMT'] }
+      it { expect(last_response.headers['ETag']).to eql ['989817aabd5f2da6a1c77425a348a080'] }
 
       it 'returns image as body' do
         expect(last_response.body).to eql File.read(image)
