@@ -33,7 +33,26 @@ class PhaltApplication < Sinatra::Base
     # don't allow the file extension to me modified for security reasons and to avoid issues with download file
     halt 500, 'Don\'t include an extension in the filename param' unless File.extname(desired_filename).empty?
 
-    desired_filename + File.extname(file)
+    extensions = all_file_extensions(file)
+    desired_filename + extensions.reverse.join
+  end
+
+  # @todo: raise exception if extension encountered >4 chars?
+  # @param [String] filename
+  # @return [Array]
+  def all_file_extensions(filename)
+    extensions = []
+    extension = File.extname(filename)
+    return extensions unless extension
+
+    new_filename = filename
+    extensions << extension
+    until extension.empty?
+      new_filename = new_filename.sub(File.extname(new_filename), '')
+      extension = File.extname(new_filename)
+      extensions << extension unless extension.empty?
+    end
+    extensions
   end
 
   # Pull file from Ceph
