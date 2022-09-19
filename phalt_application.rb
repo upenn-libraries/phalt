@@ -143,7 +143,5 @@ class PhaltApplication < Sinatra::Base
         obj << chunk
       end
     end
-
   end
-
 end
